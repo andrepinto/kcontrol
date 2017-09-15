@@ -8,6 +8,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/informers"
 	"time"
+	informercorev1 "k8s.io/client-go/informers/core/v1"
 )
 
 type KubeClient struct {
@@ -32,14 +33,22 @@ func NewKubeClient(kubeconfig string) (*KubeClient, error){
 
 	client := kubernetes.NewForConfigOrDie(config)
 
+	kc := &KubeClient{
+		Client: client,
+	}
+
+
 	sharedInformers := informers.NewSharedInformerFactory(client, 10*time.Minute)
 
+	kc.Watch(sharedInformers.Core().V1().Secrets())
 
 	sharedInformers.Start(nil)
 
-	return &KubeClient{
-		Client: client,
-	}, nil
+	return  kc, nil
+
+}
+
+func(kc *KubeClient) Watch(secretInformer informercorev1.SecretInformer){
 
 }
 
