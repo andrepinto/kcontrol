@@ -14,3 +14,4 @@ import:
   - rest
   - tools/clientcmd
 - package: golang.org/x/net
+- package: gopkg.in/yaml.v2

@@ -9,7 +9,27 @@ import (
 	"k8s.io/client-go/informers"
 	"time"
 	informercorev1 "k8s.io/client-go/informers/core/v1"
+	"k8s.io/client-go/tools/cache"
+	"fmt"
+	apicorev1 "k8s.io/client-go/pkg/api/v1"
+	"log"
 )
+
+type ServiceData struct {
+	Code string `yaml:"code"`
+	Name string `yaml:"name"`
+	Schema string `yaml:"schema"`
+	Endpoint string `yaml:"endpoint"`
+	Port int `yaml:"port"`
+	BasePath string `yaml:"basePath"`
+	Cluster  string `yaml:"cluster"`
+}
+
+type Service struct {
+	Services ServicesData
+}
+
+type ServicesData []* ServiceData
 
 type KubeClient struct {
 	Client *kubernetes.Clientset
@@ -40,7 +60,7 @@ func NewKubeClient(kubeconfig string) (*KubeClient, error){
 
 	sharedInformers := informers.NewSharedInformerFactory(client, 10*time.Minute)
 
-	kc.Watch(sharedInformers.Core().V1().Secrets())
+	kc.Watch(sharedInformers.Core().V1().ConfigMaps())
 
 	sharedInformers.Start(nil)
 
@@ -48,8 +68,27 @@ func NewKubeClient(kubeconfig string) (*KubeClient, error){
 
 }
 
-func(kc *KubeClient) Watch(secretInformer informercorev1.SecretInformer){
+func(kc *KubeClient) Watch(secretInformer informercorev1.ConfigMapInformer){
 
+
+
+	secretInformer.Informer().AddEventHandler(
+		cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				//fmt.Println("add:",obj)
+			},
+			UpdateFunc: func(oldObj, newObj interface{}) {
+				data := newObj.(*apicorev1.ConfigMap)
+				log.Println("upd:",data.Name, " ", data.Namespace)
+				key, _ := cache.MetaNamespaceKeyFunc(newObj)
+				log.Println(key)
+
+			},
+			DeleteFunc: func(obj interface{}) {
+				fmt.Println("del:",obj)
+			},
+		},
+	)
 }
 
 func(kc *KubeClient) ListNode() ([]*Node, error){
